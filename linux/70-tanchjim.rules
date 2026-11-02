@@ -1,0 +1,3 @@
+# TANCHJIM LUNA AT — let the logged-in user access the device from a browser (WebUSB / WebHID)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2fc6", ATTRS{idProduct}=="f0f0", TAG+="uaccess"
+KERNEL=="hidraw*", ATTRS{idVendor}=="2fc6", ATTRS{idProduct}=="f0f0", TAG+="uaccess"

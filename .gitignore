@@ -1,0 +1,23 @@
+# Vendor apps / installers used for analysis — never commit
+*.apk
+*.xapk
+*.apks
+*.exe
+*.msi
+*.zip
+*.7z
+*.dll
+*.sys
+
+# Analysis output
+/extracted/
+/decompiled/
+*.asm
+*.bin
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
