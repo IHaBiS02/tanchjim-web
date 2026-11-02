@@ -13,8 +13,13 @@ TANCHJIM LUNA AT DAC를 브라우저에서 설정하는 **비공식** 웹 컨트
 - 게인 Low 2 Vrms / High 4 Vrms
 - DAC 출력 모드 Class AB / Class H
 - DRE on/off (펌웨어 7 이상)
-- LED on/off
 - 펌웨어 버전, 재생 중인 샘플레이트 표시 (WebUSB 연결 시)
+
+## 지원 기기
+
+현재는 **LUNA AT**(`2fc6:f0f0`, 제품명 `TANCHJIM-LUNA AT`)만 지원합니다.
+같은 칩을 쓰는 다른 TANCHJIM 제품이 같은 VID/PID를 쓸 수 있어서 USB 제품명까지 확인하며,
+다른 기기로 확인되면 명령을 하나도 보내지 않고 연결을 닫습니다.
 
 ## 지원 환경
 

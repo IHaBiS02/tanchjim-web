@@ -13,7 +13,7 @@ const SECONDARY = isWindows ? UsbTransport : HidTransport;
 
 const EMPTY = {
   firmware: null, sampleRate: null, volumeByte: null, balance: null,
-  filter: null, gain: null, ledOn: null, dacMode: null, dreEnabled: null,
+  filter: null, gain: null, dacMode: null, dreEnabled: null,
 };
 const state = { transport: null, ...EMPTY };
 let pollTimer = null;
@@ -71,7 +71,7 @@ function absorb(p) {
       if (!dragging.volume) state.volumeByte = p.volumeByte;
       if (!dragging.balance) state.balance = p.balance;
       break;
-    case 'config1': state.filter = p.filter; state.gain = p.gain; state.ledOn = p.ledOn; break;
+    case 'config1': state.filter = p.filter; state.gain = p.gain; break;
     case 'config2': state.dacMode = p.dacMode; state.dreEnabled = p.dreEnabled; break;
   }
 }
@@ -146,6 +146,15 @@ function connectErrorHint(Transport, e) {
 }
 
 async function useTransport(t) {
+  const { vendorId, productId } = t.device;
+  if (!P.identifyDevice(vendorId, productId, t.productName)) {
+    // Close before any command is sent.
+    await t.close();
+    const name = t.productName || '알 수 없음';
+    log(`지원하지 않는 기기: ${name} (${P.hex2(vendorId >> 8)}${P.hex2(vendorId & 0xff)}:${P.hex2(productId >> 8)}${P.hex2(productId & 0xff)}) — 명령을 보내지 않고 닫음`);
+    toast(`지원하지 않는 기기입니다 (제품명: ${name}). 현재는 LUNA AT만 지원합니다.`, true);
+    return;
+  }
   await disconnect(false);
   Object.assign(state, EMPTY, { transport: t });
   log(`연결됨: ${t.name} (${t.kind === 'webusb' ? 'WebUSB' : 'WebHID'})`);
@@ -214,8 +223,8 @@ async function autoReconnect() {
 // ---------- WebHID mode: remember what was sent ----------
 
 function saveLastSent() {
-  const { volumeByte, balance, filter, gain, ledOn, dacMode, dreEnabled } = state;
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ volumeByte, balance, filter, gain, ledOn, dacMode, dreEnabled })); } catch { /* storage unavailable */ }
+  const { volumeByte, balance, filter, gain, dacMode, dreEnabled } = state;
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ volumeByte, balance, filter, gain, dacMode, dreEnabled })); } catch { /* storage unavailable */ }
 }
 function loadLastSent() {
   try {
@@ -302,10 +311,6 @@ function render() {
   dre.checked = !!state.dreEnabled;
   const dreSupported = state.firmware === null || state.firmware >= P.DRE_MIN_FIRMWARE;
   $('dreRow').hidden = !dreSupported;
-
-  const led = $('led');
-  led.indeterminate = state.ledOn === null;
-  led.checked = !!state.ledOn;
 
   const labels = { webusb: 'WebUSB로 연결', webhid: 'WebHID로 연결 (쓰기 전용)' };
   $('connectPrimary').textContent = labels[PRIMARY.kind];
@@ -394,10 +399,6 @@ function wire() {
   $('dre').addEventListener('change', (e) => {
     const on = e.target.checked;
     apply(P.setDre(on), { dreEnabled: on }, P.CMD.READ_CONFIG_2, `DRE ${on ? '켜기' : '끄기'}`);
-  });
-  $('led').addEventListener('change', (e) => {
-    const on = e.target.checked;
-    apply(P.setLed(on), { ledOn: on }, P.CMD.READ_CONFIG_1, `LED ${on ? '켜기' : '끄기'}`);
   });
 
   $('clearLog').addEventListener('click', () => { $('log').textContent = ''; });

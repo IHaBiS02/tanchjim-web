@@ -44,6 +44,7 @@ export class UsbTransport {
   constructor(device) { this.device = device; }
   get kind() { return UsbTransport.kind; }
   get name() { return this.device.productName || 'LUNA'; }
+  get productName() { return this.device.productName ?? ''; }
 
   async open() {
     if (!this.device.opened) await this.device.open();
@@ -88,6 +89,7 @@ export class HidTransport {
   constructor(device) { this.device = device; }
   get kind() { return HidTransport.kind; }
   get name() { return this.device.productName || 'LUNA'; }
+  get productName() { return this.device.productName ?? ''; }
 
   async open() {
     if (!this.device.opened) await this.device.open();
