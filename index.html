@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LUNA Control</title>
-  <meta name="description" content="TANCHJIM LUNA AT DAC를 브라우저에서 설정하는 비공식 웹 컨트롤러 (WebUSB / WebHID)">
+  <meta name="description" content="TANCHJIM LUNA · SPACE 시리즈 DAC를 브라우저에서 설정하는 비공식 웹 컨트롤러 (WebUSB / WebHID)">
   <meta name="color-scheme" content="light dark">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23222'/%3E%3Ccircle cx='21' cy='12' r='10' fill='%23f2f2f2'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/style.css">
@@ -14,7 +14,7 @@
   <header class="top">
     <div class="brand">
       <h1>LUNA Control</h1>
-      <p>TANCHJIM LUNA AT 비공식 웹 컨트롤러</p>
+      <p>TANCHJIM LUNA · SPACE 시리즈 비공식 웹 컨트롤러 (LUNA AT만 실기기 검증)</p>
     </div>
     <div class="connection">
       <div class="status" id="status"><span class="dot" aria-hidden="true"></span><span id="statusText">연결 안 됨</span></div>
@@ -33,6 +33,7 @@
     <strong>쓰기 전용 모드 (WebHID)</strong> — 설정은 보낼 수 있지만 장치의 현재 상태는 읽을 수 없습니다.
     화면의 값은 이 브라우저에서 마지막으로 보낸 설정입니다.
   </div>
+  <div class="banner warn" id="modeNotice" hidden></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <main class="grid" id="controls" aria-disabled="true">
@@ -41,22 +42,28 @@
       <dl class="info">
         <div><dt>제품</dt><dd id="infoName">—</dd></div>
         <div><dt>펌웨어</dt><dd id="infoFirmware">—</dd></div>
-        <div><dt>재생 포맷</dt><dd id="infoRate">—</dd></div>
+        <div id="rateRow"><dt>재생 포맷</dt><dd id="infoRate">—</dd></div>
         <div><dt>연결 방식</dt><dd id="infoTransport">—</dd></div>
+        <div><dt>USB ID</dt><dd id="infoUsbId">—</dd></div>
       </dl>
+      <label class="mode-picker">
+        <span>프로토콜 모드<small id="modeHint">연결하면 제품명으로 자동 선택됩니다.</small></span>
+        <select id="mode" disabled></select>
+      </label>
       <button type="button" class="ghost small" id="refresh" disabled>상태 다시 읽기</button>
     </section>
 
     <section class="card">
       <h2>볼륨</h2>
-      <div class="readout"><span id="volumeDb">—</span><span class="unit">dB</span></div>
+      <div class="readout"><span id="volumeDb">—</span><span class="unit" id="volumeUnit">dB</span></div>
       <div class="slider-row">
         <button type="button" class="step" id="volumeDown" aria-label="볼륨 한 단계 내리기">−</button>
         <input type="range" id="volume" min="0" max="60" step="1" value="0" aria-label="볼륨">
         <button type="button" class="step" id="volumeUp" aria-label="볼륨 한 단계 올리기">+</button>
       </div>
-      <p class="hint">장치 하드웨어 볼륨입니다. 슬라이더를 놓을 때 적용되며, 한 번에 10 dB 넘게 올리면 확인을 묻습니다.</p>
+      <p class="hint" id="volumeHint">장치 하드웨어 볼륨입니다. 슬라이더를 놓을 때 적용되며, 한 번에 크게 올리면 확인을 묻습니다.</p>
 
+      <div id="balanceSection">
       <h3>좌우 밸런스</h3>
       <div class="slider-row">
         <span class="side">L</span>
@@ -66,6 +73,7 @@
       <div class="balance-foot">
         <span id="balanceText">—</span>
         <button type="button" class="ghost small" id="balanceCenter">가운데</button>
+      </div>
       </div>
     </section>
 
@@ -78,13 +86,27 @@
       <h2>출력</h2>
       <h3>게인</h3>
       <div class="segmented" id="gainOptions" role="radiogroup" aria-label="게인"></div>
-      <h3>DAC 출력 모드</h3>
-      <div class="segmented" id="dacOptions" role="radiogroup" aria-label="DAC 출력 모드"></div>
+      <div id="dacSection">
+        <h3>DAC 출력 모드</h3>
+        <div class="segmented" id="dacOptions" role="radiogroup" aria-label="DAC 출력 모드"></div>
+      </div>
+
+      <div id="micSection">
+        <h3>마이크 게인 <span class="tag">미검증</span></h3>
+        <div class="slider-row">
+          <input type="range" id="micGain" min="-60" max="12" step="1" value="0" aria-label="마이크 게인">
+          <span class="mic-value"><span id="micGainText">—</span> dB</span>
+        </div>
+      </div>
 
       <div class="switches">
         <label class="switch" id="dreRow">
-          <span><strong>DRE</strong><small>Dynamic Range Enhancement · 펌웨어 7 이상</small></span>
+          <span><strong>DRE</strong><small id="dreHint">Dynamic Range Enhancement</small></span>
           <input type="checkbox" id="dre" role="switch">
+        </label>
+        <label class="switch" id="ledRow">
+          <span><strong>LED</strong><small>본체 표시등</small></span>
+          <input type="checkbox" id="led" role="switch">
         </label>
       </div>
     </section>
@@ -109,12 +131,27 @@
         </tbody>
       </table>
 
+      <h3>지원 기기와 모드</h3>
+      <table>
+        <thead><tr><th>모드</th><th>상태</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr><td>LUNA AT</td><td>실기기 검증</td><td>WebUSB 읽기 + 쓰기</td></tr>
+          <tr><td>LUNA</td><td>미검증</td><td>LUNA AT와 같은 명령 체계</td></tr>
+          <tr><td>SPACE</td><td>미검증</td><td>LUNA 명령 체계 · LED 있음 · 재생 포맷/DAC 모드 없음</td></tr>
+          <tr><td>SPACE II</td><td>미검증</td><td>별도 64바이트 HID 명령 체계 · WebHID 전용</td></tr>
+        </tbody>
+      </table>
+      <p>모드는 USB 제품명으로 자동 선택됩니다. 직접 바꿀 수도 있지만, 잘못된 모드로 명령을 보내면 장치가 오동작할 수 있습니다.
+        쓰기 전에 먼저 읽기 명령으로 응답을 확인하고, 맞는 응답이 없으면 설정을 막습니다. 플래시 저장 등 위험한 명령은 보내지 않습니다.
+        SPACE PRO / SPACE PRO AT은 공식 앱에서 다른 명령 체계를 쓰므로 지원하지 않습니다.</p>
+
       <h3>Linux: 권한 오류가 날 때</h3>
       <p>브라우저가 장치에 접근하려면 udev 규칙이 한 번 필요합니다. 터미널에서 실행한 뒤 장치를 다시 꽂아 주세요.</p>
       <pre class="code" id="udevCommand">echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2fc6", ATTRS{idProduct}=="f0f0", TAG+="uaccess"
 KERNEL=="hidraw*", ATTRS{idVendor}=="2fc6", ATTRS{idProduct}=="f0f0", TAG+="uaccess"' | sudo tee /etc/udev/rules.d/70-tanchjim.rules
 sudo udevadm control --reload && sudo udevadm trigger</pre>
       <button type="button" class="ghost small" id="copyUdev">명령 복사</button>
+      <p class="hint">위 규칙은 LUNA AT(2fc6:f0f0)용입니다. 다른 기기는 연결 시 로그에 나오는 USB ID로 idVendor / idProduct를 바꿔 넣으세요.</p>
 
       <h3>Windows</h3>
       <p>Windows에서는 WebUSB로 오디오 장치에 접근할 수 없어 WebHID(쓰기 전용)로 연결합니다. 현재 설정값은 읽어올 수 없습니다.</p>

@@ -3,18 +3,7 @@
 // Replies are 8 bytes: A1 A5 <cmd> ... (the device answers C1 A5 ... when it rejects a command).
 // See PROTOCOL.md for how this was derived and verified.
 
-export const VENDOR_ID = 0x2fc6;
-// Only LUNA AT has been verified on real hardware.
-export const DEVICES = [{ vendorId: VENDOR_ID, productId: 0xf0f0, name: 'TANCHJIM-LUNA AT' }];
-
-// Other Comtrue-based TANCHJIM products may share the same VID/PID, so the USB product string is
-// checked too (the official app also tells models apart by name). Some platforms prefix the
-// manufacturer ("TANCHJIM TANCHJIM-LUNA AT"), which is accepted.
-export function identifyDevice(vendorId, productId, productName) {
-  const name = (productName ?? '').trim();
-  return DEVICES.find((d) => d.vendorId === vendorId && d.productId === productId
-    && (name === d.name || name.endsWith(` ${d.name}`))) ?? null;
-}
+// Used by LUNA, LUNA AT and SPACE in the official app. Only LUNA AT has been verified on hardware.
 
 export const CMD = Object.freeze({
   FILTER: 0x01,
@@ -57,12 +46,8 @@ export const DAC_MODES = [
   { code: 0x01, label: 'Class H' },
 ];
 
-// LED is only meaningful on SPACE (the official app hides it for LUNA; LUNA AT has no LED).
-// Kept here for completeness; the UI does not expose it.
+// LED is only shown for SPACE (the official app hides it for LUNA; LUNA AT has no LED).
 export const LED = Object.freeze({ ON: 0x00, OFF: 0x02 });
-
-// DRE is only available from this firmware version on.
-export const DRE_MIN_FIRMWARE = 7;
 
 // Volume byte = attenuation in 0.5 dB steps (0x00 = 0 dB, 0xFF = -127.5 dB).
 // These are the 61 steps the official app offers.

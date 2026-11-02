@@ -1,4 +1,4 @@
-# TANCHJIM LUNA AT 제어 프로토콜 (분석 노트)
+# TANCHJIM LUNA · SPACE 제어 프로토콜 (분석 노트)
 
 출처: Android 앱 `com.tanchjim.android` (jadx 디컴파일)
 - `com/tanchjim/android/device/typec/luna/LUNACommand.java` — 명령/응답 정의
@@ -128,7 +128,44 @@ Python 표준 라이브러리로 usbfs `USBDEVFS_CONTROL` ioctl과 hidraw를 직
 → **WebUSB: 읽기/쓰기 모두 가능** (Linux 확인, macOS·ChromeOS·Android Chrome도 가능할 것으로 예상)
 → **WebHID: 쓰기만 가능** — Windows용 대체 경로 (Windows 실기기 미확인)
 
+## 모델별 차이 (공식 앱 기준, LUNA AT 외 미검증)
+
+공식 앱은 USB 제품명으로 모델을 구분한다 (`DeviceBaseInfo`).
+`CommandProcessingCenter`에서 SPACE II만 `Space2Command`를 쓰고, LUNA · LUNA AT · SPACE는 `LUNACommand`(이 문서의 7바이트 명령)를 쓴다.
+SPACE PRO / SPACE PRO AT은 별도(TTGK) 프로토콜 대상이라 이 웹 앱에서 지원하지 않는다.
+
+| 모델 | 제품명 | 재생 포맷 | DAC 모드 | LED | DRE |
+|---|---|---|---|---|---|
+| LUNA / LUNA AT | `TANCHJIM-LUNA`, `TANCHJIM-LUNA AT` | 표시 | 표시 | 숨김 | 펌웨어 ≥ 7 |
+| SPACE | `TANCHJIM-SPACE` | 숨김 | 숨김 | 표시 (`06`: 00 켬 / 02 끔) | 펌웨어 ≥ 9 |
+| SPACE II | `TANCHJIM-SPACE II` | 숨김 | 표시 | — | 항상 |
+
+Windows 앱 등록 목록의 VID: `2fc6` (f070, f072, f0f0), `31b2`, `3302`, `0666:0888`. 웹 앱의 장치 선택 필터도 이 VID를 쓴다.
+
+## SPACE II 프로토콜 (`Space2Command`, 미검증)
+
+64바이트 패킷, 남는 부분은 0. 공식 앱의 쓰기 패킷은 66바이트지만 웹 앱은 64바이트로 보낸다.
+HID Output 리포트로 보내고 Input 리포트로 응답을 받는 것으로 추정한다. 디스크립터에 리포트 ID `0x4B`가 있으면 첫 바이트를 리포트 ID로 쓰고, 없으면 리포트 0으로 64바이트 전체를 보낸다.
+
+| 레지스터 | 의미 | 쓰기 | 응답 해석 (`4B 80 <reg> ..`) |
+|---|---|---|---|
+| `0C` | 펌웨어 | — | `'V' + ASCII [4][5][6]` |
+| `85` | 볼륨 단계 0–60 | `4B 01 85 01 <단계>` | [4] |
+| `19` | DAC 게인 | `4B 01 19 01 <00/01>` | [4] |
+| `11` | 필터 01–05 | `4B 01 11 01 <코드>` | [4] |
+| `1D` | DAC 모드 | `4B 01 1D 01 <00/01>` | [4] |
+| `32` | DRE | `4B 01 32 01 <00 켬/01 끔>` | [4] (00 = 켬) |
+| `02` | 마이크(ADC) 게인 -60..+12 dB | `4B 01 02 02 00 <int8>` | [5] (부호 있음) |
+| `16` | 채널 레벨 (밸런스) | `4B 01 16 04 <ch 00 L/01 R> <int16 LE, dB×256>` | 읽기 `4B 80 16 02 <ch>`, [4] 채널, [6][7] big-endian / 256 |
+
+- 밸런스: 공식 앱은 한쪽 채널을 0, 반대 채널을 -값으로 쓴다. 읽을 때 오른쪽이 0이 아니면 그 값(음수 = 왼쪽으로 치우침), 아니면 |왼쪽|.
+- 공식 앱은 쓰기 후 다시 읽지 않는다. 웹 앱은 확인을 위해 해당 레지스터를 다시 읽는다.
+- 공식 앱은 볼륨을 바꿀 때마다 `4B 01 04`(SAVE_FLASH)를 보낸다. `4B 01 01`(SAVE_REG)도 있다. **웹 앱은 둘 다 보내지 않는다.**
+
 ## 미확인 / TODO
+
+- [ ] LUNA · SPACE · SPACE II 실기기 동작 (모두 미검증 모드로 제공)
+- [ ] SPACE II의 HID 리포트 ID / 크기, Input 리포트로 응답이 오는지
 
 - [ ] Windows에서 WebHID `sendReport`로 설정 변경이 되는지 (Consumer Control 컬렉션)
 
